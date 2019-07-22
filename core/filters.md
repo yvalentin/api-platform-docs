@@ -278,7 +278,7 @@ use ApiPlatform\Core\Annotation\ApiResource;
 use ApiPlatform\Core\Bridge\Doctrine\Orm\Filter\BooleanFilter;
 
 /**
- * @ApiResource(attributes={"filters"={"offer.boolean_filter"}})
+ * @ApiResource
  * @ApiFilter(BooleanFilter::class, properties={"isAvailableGenericallyInMyCountry"})
  */
 class Offer
@@ -376,7 +376,7 @@ use ApiPlatform\Core\Annotation\ApiResource;
 use ApiPlatform\Core\Bridge\Doctrine\Orm\Filter\ExistsFilter;
 
 /**
- * @ApiResource(attributes={"filters"={"offer.exists_filter"}})
+ * @ApiResource
  * @ApiFilter(ExistsFilter::class, properties={"transportFees"})
  */
 class Offer
@@ -508,7 +508,7 @@ use ApiPlatform\Core\Bridge\Doctrine\Orm\Filter\SearchFilter;
 /**
  * @ApiResource
  * @ApiFilter(OrderFilter::class, properties={"product.releaseDate"})
- * @ApiFilter(SearchFilter::class, properties={"product.name": "exact"})
+ * @ApiFilter(SearchFilter::class, properties={"product.color": "exact"})
  */
 class Offer
 {
@@ -602,7 +602,7 @@ Given that the collection endpoint is `/books`, you can filter by serialization 
 
 The property filter adds the possibility to select the properties to serialize (sparse fieldsets).
 
-Syntax: `?properties[]=<property>&properties[<relation>]=<property>`
+Syntax: `?properties[]=<property>&properties[<relation>][]=<property>`
 
 You can add as many properties as you need.
 
@@ -635,7 +635,7 @@ Three arguments are available to configure the filter:
 - `whitelist` properties whitelist to avoid uncontrolled data exposure (default `null` to allow all properties)
 
 Given that the collection endpoint is `/books`, you can filter the serialization properties with the following query: `/books?properties[]=title&properties[]=author`.
-If you want to include some properties of the nested "author" document, use: `/books?properties[]=title&properties[author]=name`.
+If you want to include some properties of the nested "author" document, use: `/books?properties[]=title&properties[author][]=name`.
 
 ## Creating Custom Filters
 
@@ -665,14 +665,22 @@ library. This library must be properly installed and registered to use this exam
 
 namespace App\Filter;
 
-use ApiPlatform\Core\Bridge\Doctrine\Orm\Filter\AbstractFilter;
+use ApiPlatform\Core\Bridge\Doctrine\Orm\Filter\AbstractContextAwareFilter;
 use ApiPlatform\Core\Bridge\Doctrine\Orm\Util\QueryNameGeneratorInterface;
 use Doctrine\ORM\QueryBuilder;
 
-final class RegexpFilter extends AbstractFilter
+final class RegexpFilter extends AbstractContextAwareFilter
 {
     protected function filterProperty(string $property, $value, QueryBuilder $queryBuilder, QueryNameGeneratorInterface $queryNameGenerator, string $resourceClass, string $operationName = null)
     {
+        // otherwise filter is applied to order and page as well
+        if (
+            !$this->isPropertyEnabled($property, $resourceClass) ||
+            !$this->isPropertyMapped($property, $resourceClass)
+        ) {
+            return;
+        }
+        
         $parameterName = $queryNameGenerator->generateParameterName($property); // Generate a unique parameter name to avoid collisions with other filters
         $queryBuilder
             ->andWhere(sprintf('REGEXP(o.%s, :%s) = 1', $property, $parameterName))

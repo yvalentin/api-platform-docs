@@ -30,6 +30,12 @@ package manager) chart to deploy in a wink on any of these platforms.
 
 ## Deploying
 
+Firstly you need to update helm dependencies by running:
+
+    helm dependency update ./api/helm/api
+
+You are now ready to deploy the API!
+
 Deploy your API to the container:
 
     helm install ./api/helm/api --namespace=baz --name baz \
@@ -38,7 +44,7 @@ Deploy your API to the container:
         --set secret=MyAppSecretKey \
         --set postgresql.postgresPassword=MyPgPassword \
         --set postgresql.persistence.enabled=true \
-        --set corsAllowUrl='^https?://[a-z\]*\.mywebsite.com$'
+        --set corsAllowOrigin='^https?://[a-z\]*\.mywebsite.com$'
 
 If you prefer to use a managed DBMS like [Heroku Postgres](https://www.heroku.com/postgres) or
 [Google Cloud SQL](https://cloud.google.com/sql/docs/postgres/) (recommended):
